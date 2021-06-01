@@ -1,5 +1,4 @@
-import ujson, urequests, ure, time
-from config import TOKEN
+import ujson, urequests, ure, time, gc
 
 class Bot():
     '''
@@ -9,14 +8,19 @@ class Bot():
     def __init__(self, token):
         self.url = 'https://api.telegram.org/bot' + token
         self.last_update = 0
+        self.loop_sleep = 100
         self.message_handlers = {}
+        self.command_handlers = {}
 
         self._get_updates()
+
+    def change_loop_sleep(self, time_in_ms: int):
+        self.loop_sleep = time_in_ms
 
     def _get_updates(self):
         '''
         Gets all the updates from the telegram api and stores
-        lates id for next iteration
+        latest id for next iteration
         '''
         parameters = {
             'offset': self.last_update + 1,
@@ -28,7 +32,7 @@ class Bot():
             response = urequests.post(self.url + '/getUpdates', json=parameters).json()
 
             if 'result' in response:
-                self.last_update = response['result'][-1]['update_id']
+                self.last_update = response['result'][-1]['update_id'] #storing last update id
                 return [update for update in response['result']]
 
             return None
@@ -37,23 +41,39 @@ class Bot():
             return  None
 
     def _handle_update(self, update):
-        for key in list(self.message_handlers.keys()):
-            if ure.match(key, update['message']['text']):
-                self.message_handlers[key](update)
+        '''
+        Function that chooses the right function to handle the update, 
+        based on the previously defined handlers
+        '''
+        text = update['message']['text']
+
+        if text.startswith('/'): #is a command
+            #get first word (useful for future implementation of commands with arguments)
+            command = text.split(' ')[0].replace('/','')
+
+            if command in set(self.command_handlers.keys()):
+                self.command_handlers[command](update)
                 return
 
+        for expression in set(self.message_handlers.keys()):
+            #handling messagges
+            if ure.match(expression, text):
+                self.message_handlers[key](update)
+                return
 
     def loop(self):
         '''
         main bot loop function
         '''
-        time.sleep(0.5)
+
         while True:
+            gc.collect() #in case automatic gc is disabled
+            time.sleep_ms(self.loop_sleep)
+
             updates = self._get_updates()
             if updates:
                 for update in updates:
                     self._handle_update(update)
-
 
     def add_message_handler(self, regular_expression):
         '''
@@ -62,13 +82,15 @@ class Bot():
 
         def decorator(function):
             self.message_handlers[regular_expression] = function
+
         return decorator
 
-if __name__ == '__main__':
-    b = Bot(TOKEN)
+    def add_command_handler(self, command):
+        '''
+        Decorator to add a command handler, (write command without '/' as argument)
+        '''
 
-    @b.add_message_handler('^ciao$')
-    def ciao(update):
-        print(update)
+        def decorator(function):
+            self.command_handlers[command] = function
 
-    b.loop()
+        return decorator
