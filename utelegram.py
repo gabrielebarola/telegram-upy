@@ -33,7 +33,7 @@ class Bot():
 
             if 'result' in response:
                 self.last_update = response['result'][-1]['update_id'] #storing last update id
-                return [update for update in response['result']]
+                return [Update(self, update) for update in response['result']]
 
             return None
 
@@ -45,7 +45,7 @@ class Bot():
         Function that chooses the right function to handle the update, 
         based on the previously defined handlers
         '''
-        text = update['message']['text']
+        text = update.message['text']
 
         if text.startswith('/'): #is a command
             #get first word (useful for future implementation of commands with arguments)
@@ -58,7 +58,7 @@ class Bot():
         for expression in set(self.message_handlers.keys()):
             #handling messagges
             if ure.match(expression, text):
-                self.message_handlers[key](update)
+                self.message_handlers[expression](update)
                 return
 
     def loop(self):
@@ -94,3 +94,29 @@ class Bot():
             self.command_handlers[command] = function
 
         return decorator
+
+    def send_message(self, chat_id, text):
+        parameters = {
+            'chat_id': chat_id,
+            'text': text
+        }
+
+        try:
+            message = urequests.post(self.url + '/sendMessage', json=parameters).json()
+            assert message
+
+        except Exception:
+            print('message not sent')
+
+class Update():
+    '''
+    class with basic methods for updates
+    '''
+
+    def __init__(self, b, update):
+        self.update_id = update['update_id']
+        self.message = update['message']
+        self.bot = b
+
+    def reply(self, text):
+        self.bot.send_message(self.message['chat']['id'], text)
