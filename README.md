@@ -63,3 +63,15 @@ def start(update):
 ```
 
 **The regular expression must be given to the decorator as argument**
+
+## Starting the bot loop
+
+```
+bot.loop()
+```
+
+Default delay between executions is 100mS, you can change it with:
+
+```
+bot.change_loop_sleep(time_in_ms)
+```
