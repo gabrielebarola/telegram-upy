@@ -29,7 +29,7 @@ class Bot():
             }
 
         try:
-            response = ureq.post(self.url + '/getUpdates', json=parameters)
+            response = urequests.post(self.url + '/getUpdates', json=parameters)
             data = response.json()
             response.close()
 
@@ -104,7 +104,7 @@ class Bot():
         }
 
         try:
-            message = ureq.post(self.url + '/sendMessage', json=parameters).json()
+            message = urequests.post(self.url + '/sendMessage', json=parameters).json()
             assert message
 
         except Exception:
