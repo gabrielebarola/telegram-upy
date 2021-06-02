@@ -1,4 +1,4 @@
-import ujson, urequests_telegram, ure, time, gc
+import ujson, ure, time, gc, urequests
 
 class Bot():
     '''
@@ -29,10 +29,13 @@ class Bot():
             }
 
         try:
-            response = urequests.post(self.url + '/getUpdates', json=parameters).json()
-            if 'result' in response:
-                self.last_update = response['result'][-1]['update_id'] #storing last update id
-                return [Update(self, update) for update in response['result']]
+            response = ureq.post(self.url + '/getUpdates', json=parameters)
+            data = response.json()
+            response.close()
+
+            if 'result' in data:
+                self.last_update = data['result'][-1]['update_id'] #storing last update id
+                return [Update(self, update) for update in data['result']]
 
             return None
 
@@ -101,7 +104,7 @@ class Bot():
         }
 
         try:
-            message = urequests.post(self.url + '/sendMessage', json=parameters).json()
+            message = ureq.post(self.url + '/sendMessage', json=parameters).json()
             assert message
 
         except Exception:
