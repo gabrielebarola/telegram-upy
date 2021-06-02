@@ -73,6 +73,7 @@ class Bot():
             time.sleep_ms(self.loop_sleep)
 
             updates = self._get_updates()
+
             if updates:
                 for update in updates:
                     self._handle_update(update)
@@ -97,18 +98,49 @@ class Bot():
 
         return decorator
 
-    def send_message(self, chat_id, text):
+    def send_message(self, chat_id, text, parse_mode='MarkdownV2', reply_markup=None):
+
         parameters = {
             'chat_id': chat_id,
-            'text': text
+            'text': text,
+            'parse_mode': parse_mode
         }
 
+        if reply_markup:
+            parameters['reply_markup'] = reply_markup.data
+
         try:
-            message = urequests.post(self.url + '/sendMessage', json=parameters).json()
+            message = urequests.post(self.url + '/sendMessage', json=parameters)
             assert message
+            message.close()
 
         except Exception:
             print('message not sent')
+
+class ReplyKeyboardMarkup():
+    '''
+    class used to as custom reply_markup to send custom keyboards
+    '''
+
+    def __init__(self, keyboard, resize_keyboard=False, one_time_keyboard=False, selective=False):
+        self.data = {
+            'keyboard': [[k.data for k in row] for row in keyboard],
+            'resize_keyboard': resize_keyboard,
+            'one_time_keyboard': one_time_keyboard,
+            'selective': selective
+            }
+
+class KeyboardButton():
+    '''
+    class used to create button objects used with ReplyKeyboardMarkup
+    '''
+
+    def __init__(self, text, request_contact=False, request_location=False):
+        self.data = {
+            'text': text,
+            'request_contact': request_contact,
+            'request_location': request_location
+            }
 
 class Update():
     '''
@@ -120,5 +152,5 @@ class Update():
         self.message = update['message']
         self.bot = b
 
-    def reply(self, text):
-        self.bot.send_message(self.message['chat']['id'], text)
+    def reply(self, text, parse_mode='MarkdownV2', reply_markup=None):
+        self.bot.send_message(self.message['chat']['id'], text, parse_mode=parse_mode, reply_markup=reply_markup)

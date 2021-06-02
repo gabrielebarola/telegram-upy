@@ -66,6 +66,23 @@ def hello(update):
 
 **The regular expression must be given to the decorator as argument**
 
+## Using custom keyboards
+You can define custom keyboards to send with a reply
+```python
+from utelegram import ReplyKeyboardMarkup, KeyboardButton
+
+keyboard = [
+    [KeyboardButton('Btn1')], #each list is a row, each element is a column
+    [KeyboardButton('Btn2'), KeyboardButton('Btn3')],
+]
+
+reply_keyboard = ReplyMarkupKeyboard(keyboard) #pass your array as the keyboard
+
+@bot.add_message_handler('^Show keyboard')
+def show(update):
+    update.reply('here it is!', reply_markup=reply_keyboard)
+```
+
 ## Starting the bot loop
 
 ```python
