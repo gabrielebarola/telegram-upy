@@ -1,4 +1,4 @@
-import ujson, urequests, ure, time, gc
+import ujson, urequests_telegram, ure, time, gc
 
 class Bot():
     '''
@@ -8,7 +8,7 @@ class Bot():
     def __init__(self, token):
         self.url = 'https://api.telegram.org/bot' + token
         self.last_update = 0
-        self.loop_sleep = 100
+        self.loop_sleep = 200
         self.message_handlers = {}
         self.command_handlers = {}
 
@@ -30,7 +30,6 @@ class Bot():
 
         try:
             response = urequests.post(self.url + '/getUpdates', json=parameters).json()
-
             if 'result' in response:
                 self.last_update = response['result'][-1]['update_id'] #storing last update id
                 return [Update(self, update) for update in response['result']]
