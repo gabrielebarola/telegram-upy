@@ -25,6 +25,7 @@ upip.install('urequests')
 
 ---
 # USAGE
+You can find simple examples in the **examples** folder.
 ## Creating the bot
 ```python
 from utelegram import Bot
