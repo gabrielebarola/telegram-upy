@@ -17,8 +17,14 @@ ampy -b 115200 -p /dev/ttyUSB0 put path/to/utelegram.py
 
 Do the same for the **urequests_telegram.py** file:
 
+<<<<<<< HEAD
 ```bash
 ampy -b 115200 -p /dev/ttyUSB0 put path/to/urequests_telegram.py
+=======
+```python
+import upip 
+upip.install('urequests')
+>>>>>>> 053ef9b17f4fe98efe5a6cf4c8ac25fd15c5abca
 ```
 
 **This is a slightly modified version of the standard urequets library that closes the socket at the end of the request, needed to prevent out of memory errors**
