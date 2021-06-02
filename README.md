@@ -20,7 +20,7 @@ Install urequests library using upip in repl
 ```python
 import upip
 
-upip.install(urequests)
+upip.install('urequests')
 ```
 
 ---
