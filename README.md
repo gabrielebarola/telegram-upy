@@ -94,3 +94,6 @@ Default delay between executions is 200mS, you can change it with:
 ```python
 bot.change_loop_sleep(time_in_ms)
 ```
+
+# Donating
+If you appreciate my work and want to donate, you can do it with PayPal at https://www.paypal.me/gabrielebarola
