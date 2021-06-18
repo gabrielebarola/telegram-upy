@@ -83,17 +83,54 @@ def show(update):
     update.reply('here it is!', reply_markup=reply_keyboard)
 ```
 
+## Using conversations
+A conversation is a multi-step handler with subhandlers.
+To create a conversation:
+
+```python
+from utelegram import Conversation
+
+c = Conversation(['STEP1','STEP2']) #ENTRY STEP IS DEFAULT
+```
+
+Handlers can be added similarly to the bot ones:
+```python
+@c.add_command_handler('ENTRY', '/started')
+def do(update):
+    update.reply('moving to step 1')
+    return 'STEP1'
+
+@c.add_command_handler('STEP1', '/dosomething')
+def do(update):
+    update.reply('did it!')
+    return 'STEP2'
+
+@c.add_message_handler('STEP2', '^end$')
+def end(update):
+    update.reply('ending')
+    return c.END
+```
+
+**An handler must always return the next step you want to take in the conversation, use c.END to end the conversation**
+
+Add the conversation to the bot:
+
+```python
+bot.add_conversation_handler(c)
+```
+
 ## Starting the bot loop
 
 ```python
-bot.loop()
+bot.start_loop()
 ```
 
-Default delay between executions is 200mS, you can change it with:
+you can also change default timer and period
 
 ```python
-bot.change_loop_sleep(time_in_ms)
+bot.start_loop(timer=2, period=200)
 ```
+
 
 # Donating
 If you appreciate my work and want to donate, you can do it with PayPal at https://www.paypal.me/gabrielebarola

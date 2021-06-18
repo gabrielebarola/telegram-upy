@@ -1,4 +1,5 @@
 import ujson, ure, time, gc, urequests
+from machine import Timer
 
 class Bot():
     '''
@@ -8,14 +9,11 @@ class Bot():
     def __init__(self, token):
         self.url = 'https://api.telegram.org/bot' + token
         self.last_update = 0
-        self.loop_sleep = 200
         self.message_handlers = {}
         self.command_handlers = {}
+        self.conversation_handlers = []
 
         self._get_updates()
-
-    def change_loop_sleep(self, time_in_ms: int):
-        self.loop_sleep = time_in_ms
 
     def _get_updates(self):
         '''
@@ -52,31 +50,51 @@ class Bot():
         if text.startswith('/'): #is a command
             #get first word (useful for future implementation of commands with arguments)
             command = text.split(' ')[0].replace('/','')
+            
+            for c in self.conversation_handlers:
+            	if command in c.steps[c.active][0].keys():
+            		next_step = c.steps[c.active][0][command](update)
+            		c.go_to_step(next_step)
+            		return
 
             if command in set(self.command_handlers.keys()):
                 self.command_handlers[command](update)
                 return
+        else:
+                
+		for c in self.conversation_handlers:
+		    	for expression in c.steps[c.active][1].keys():
+		    		if ure.match(expression, text):
+			    		next_step = c.steps[c.active][1][expression](update)
+			    		c.go_to_step(next_step)
+			    		return
+			    		
+		for expression in set(self.message_handlers.keys()):
+		    #handling messagges
+		    if ure.match(expression, text):
+		        self.message_handlers[expression](update)
+		        return
 
-        for expression in set(self.message_handlers.keys()):
-            #handling messagges
-            if ure.match(expression, text):
-                self.message_handlers[expression](update)
-                return
-
-    def loop(self):
+    def read(self, t=None):
         '''
-        main bot loop function
+        main bot read function
         '''
 
-        while True:
-            gc.collect() #in case automatic gc is disabled
-            time.sleep_ms(self.loop_sleep)
+        updates = self._get_updates()
 
-            updates = self._get_updates()
-
-            if updates:
-                for update in updates:
-                    self._handle_update(update)
+        if updates:
+            for update in updates:
+                self._handle_update(update)
+                
+        gc.collect() #in case automatic gc is disabled
+        
+    def start_loop(self, timer=1, period=100):
+    	"""
+    	main function used to start the bot loop with timers and interrupts.
+    	"""
+    
+    	t = Timer(timer)
+    	t.init(period=period, mode=Timer.PERIODIC, callback=self.read)
 
     def add_message_handler(self, regular_expression):
         '''
@@ -97,6 +115,14 @@ class Bot():
             self.command_handlers[command] = function
 
         return decorator
+        
+    def add_conversation_handler(self, conversation):
+        '''
+        Decorator to add a conversation handler
+        '''
+        
+        self.conversation_handlers.append(conversation)
+
 
     def send_message(self, chat_id, text, parse_mode='MarkdownV2', reply_markup=None):
 
@@ -116,6 +142,57 @@ class Bot():
 
         except Exception:
             print('message not sent')
+            
+class Conversation():
+	"""
+	Conversation class used for conversations with multiple steps
+	
+	STEPS MUST BE DEFINED AT INITIALIZATION, EACH STEP CAN HAVE MULTIPLE HANDLERS
+	
+	ENTRY STEP IS ADDED BY DEFAULT AND IS USED TO START THE CONVERSATION
+	
+	every function used as a handler should return the next conversation step
+	"""
+	
+	def __init__(self, steps: list = []):
+		self.END = 0
+		self.steps = {
+			'ENTRY': [{},{}]
+		}
+		self.active = 'ENTRY'
+		
+		for step in steps:
+			self.steps[step] = [{},{}]
+			
+	def add_command_handler(self, step, command):
+		'''
+		Decorator to add a command handler to a specific step,
+		(write command without '/' as argument)
+		'''
+
+		def decorator(function):
+		    self.steps[step][0][command] = function
+
+        	return decorator
+        	
+        def add_message_handler(self, step, regular_expression):
+		'''
+		Decorator to add a message handler to a specific step,
+		with regex validation
+		'''
+
+		def decorator(function):
+		    self.steps[step][1][regular_expression] = function
+
+		return decorator
+		
+	def go_to_step(self, step):
+		if step == 0:
+			self.active = 'ENTRY'
+		elif step in self.steps.keys():
+			self.active = step
+		else:
+			print('[ERROR] No step named {s} defined, staying at current step'.format(step))
 
 class ReplyKeyboardMarkup():
     '''

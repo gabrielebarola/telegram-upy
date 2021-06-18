@@ -19,7 +19,6 @@ replyKeyboard = ReplyKeyboardMarkup(keyboard)
 
 @bot.add_command_handler('help')
 def help(update):
-    print('entered')
     update.reply('Write /start to get a custom keyboard or /value to get the current led status')
 
 @bot.add_command_handler('start')
