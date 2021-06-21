@@ -193,6 +193,9 @@ class Conversation():
 			self.active = step
 		else:
 			print('[ERROR] No step named {s} defined, staying at current step'.format(step))
+			
+	def end(self):
+		self.active = 'ENTRY'
 
 class ReplyKeyboardMarkup():
     '''
