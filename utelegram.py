@@ -124,13 +124,15 @@ class Bot():
         self.conversation_handlers.append(conversation)
 
 
-    def send_message(self, chat_id, text, parse_mode='MarkdownV2', reply_markup=None):
+    def send_message(self, chat_id, text, parse_mode='None', reply_markup=None):
 
         parameters = {
             'chat_id': chat_id,
             'text': text,
-            'parse_mode': parse_mode
         }
+        
+        if parse_mode:
+        	parameters['parse_mode'] = parse_mode
 
         if reply_markup:
             parameters['reply_markup'] = reply_markup.data
