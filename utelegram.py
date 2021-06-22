@@ -22,7 +22,7 @@ class Bot():
         '''
         parameters = {
             'offset': self.last_update + 1,
-            'timeout': 10,
+            'timeout': 2,
             'allowed_updates': ['messages']
             }
 
@@ -30,7 +30,7 @@ class Bot():
             response = urequests.post(self.url + '/getUpdates', json=parameters)
             data = response.json()
             response.close()
-
+            
             if 'result' in data:
                 self.last_update = data['result'][-1]['update_id'] #storing last update id
                 return [Update(self, update) for update in data['result']]
@@ -75,7 +75,7 @@ class Bot():
 		        self.message_handlers[expression](update)
 		        return
 
-    def read(self, t=None):
+    def read(self, timer=None):
         '''
         main bot read function
         '''
