@@ -129,8 +129,8 @@ if you want to use another function in parallel with the bot do it this way:
 
 ```python
 def main(text):
-    while True
-    print(text)
+    while True:
+        print(text)
 	
 bot.start_loop(main, (text,))
 ```
