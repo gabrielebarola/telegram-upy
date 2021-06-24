@@ -45,4 +45,4 @@ def toggle(update):
     old_status = bool(led.value())
     led.value(not old_status)
 
-bot.loop()
+bot.start_loop()

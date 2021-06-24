@@ -125,11 +125,17 @@ bot.add_conversation_handler(c)
 bot.start_loop()
 ```
 
-you can also change default timer and period
+if you want to use another function in parallel with the bot do it this way:
 
 ```python
-bot.start_loop(timer=2, period=200)
+def main(text):
+    while True
+    print(text)
+	
+bot.start_loop(main, (text,))
 ```
+
+if your function has arguments pass them as a touple
 
 
 # Donating

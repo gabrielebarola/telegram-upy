@@ -1,4 +1,4 @@
-import ujson, ure, time, gc, urequests
+import ujson, ure, time, gc, urequests, _thread
 from machine import Timer
 
 class Bot():
@@ -75,26 +75,32 @@ class Bot():
 		        self.message_handlers[expression](update)
 		        return
 
-    def read(self, timer=None):
+    def _read(self):
         '''
         main bot read function
         '''
-
         updates = self._get_updates()
-
+        
         if updates:
             for update in updates:
                 self._handle_update(update)
                 
         gc.collect() #in case automatic gc is disabled
+        return
         
-    def start_loop(self, timer=1, period=100):
+    def _loop(self, period=100):
+        while True:
+    	    self._read()
+        
+    def start_loop(self, main_function=None, args=(), period=100):
     	"""
-    	main function used to start the bot loop with timers and interrupts.
+    	main function used to start the bot in a different thread.
     	"""
-    
-    	t = Timer(timer)
-    	t.init(period=period, mode=Timer.PERIODIC, callback=self.read)
+    	if main_function:
+    		_thread.start_new_thread(main_function, args)
+    		
+    	_thread.start_new_thread(self._loop(), (period,))
+    	
 
     def add_message_handler(self, regular_expression):
         '''

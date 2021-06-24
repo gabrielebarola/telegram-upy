@@ -29,4 +29,4 @@ def on(update):
 def off(update):
     led.off()
 
-bot.loop()
+bot.start_loop()
