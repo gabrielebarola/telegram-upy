@@ -134,7 +134,7 @@ class Bot():
 
         parameters = {
             'chat_id': chat_id,
-            'text': text,
+            'text': text.replace('.', '\.'),
             'parse_mode': parse_mode
         }
 
