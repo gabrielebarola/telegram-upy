@@ -1,6 +1,7 @@
 import ujson, ure, time, gc, urequests, _thread
 from machine import Timer
 
+
 class Bot():
     '''
     Base class for interacting with telegram api
@@ -9,8 +10,9 @@ class Bot():
     def __init__(self, token):
         self.url = 'https://api.telegram.org/bot' + token
         self.last_update = 0
-        self.message_handlers = {}
         self.command_handlers = {}
+        self.callback_handlers = {}
+        self.message_handlers = {}
         self.conversation_handlers = []
 
         self._get_updates()
@@ -31,13 +33,14 @@ class Bot():
             data = response.json()
             response.close()
             
-            if 'result' in data:
+            if data['result']:
                 self.last_update = data['result'][-1]['update_id'] #storing last update id
                 return [Update(self, update) for update in data['result']]
 
             return None
 
-        except:
+        except Exception as e:
+            print('_get_updates: ',e)
             return  None
 
     def _handle_update(self, update):
@@ -46,6 +49,11 @@ class Bot():
         based on the previously defined handlers
         '''
         text = update.message['text']
+
+        if update.is_callback:
+            self.callback_handlers[update.callback_data](update)
+
+
 
         if text.startswith('/'): #is a command
             #get first word (useful for future implementation of commands with arguments)
@@ -62,18 +70,18 @@ class Bot():
                 return
         else:
                 
-		for c in self.conversation_handlers:
-		    	for expression in c.steps[c.active][1].keys():
-		    		if ure.match(expression, text):
-			    		next_step = c.steps[c.active][1][expression](update)
-			    		c.go_to_step(next_step)
-			    		return
-			    		
-		for expression in set(self.message_handlers.keys()):
-		    #handling messagges
-		    if ure.match(expression, text):
-		        self.message_handlers[expression](update)
-		        return
+            for c in self.conversation_handlers:
+                    for expression in c.steps[c.active][1].keys():
+                        if ure.match(expression, text):
+                            next_step = c.steps[c.active][1][expression](update)
+                            c.go_to_step(next_step)
+                            return
+                            
+            for expression in set(self.message_handlers.keys()):
+                #handling messagges
+                if ure.match(expression, text):
+                    self.message_handlers[expression](update)
+                    return
 
     def _read(self):
         '''
@@ -109,6 +117,16 @@ class Bot():
 
         def decorator(function):
             self.message_handlers[regular_expression] = function
+
+        return decorator
+
+    def add_callback_handler(self, callback_data):
+        '''
+        Decorator to add a callback handler 
+        '''
+
+        def decorator(function):
+            self.callback_handlers[callback_data] = function
 
         return decorator
 
@@ -148,8 +166,31 @@ class Bot():
 
         except Exception:
             print('message not sent')
-            
 
+
+    def update_message(self, chat_id, message_id, text, parse_mode='MarkdownV2', reply_markup=None):
+
+        parameters = {
+            'chat_id': chat_id,
+            'message_id' : message_id,
+            'text': text,
+            'parse_mode': parse_mode,
+            
+        }
+
+        if reply_markup:
+            parameters['reply_markup'] = reply_markup.data
+
+        try:
+            message = urequests.post(self.url + '/editMessageText', json=parameters)
+            print(message.text)
+            assert message
+            message.close()
+
+        except Exception:
+            print('update not sent')
+            
+            
 class Conversation():
 	"""
 	Conversation class used for conversations with multiple steps
@@ -204,6 +245,7 @@ class Conversation():
 	def end(self):
 		self.active = 'ENTRY'
 
+
 class ReplyKeyboardMarkup():
     '''
     class used to as custom reply_markup to send custom keyboards
@@ -217,6 +259,17 @@ class ReplyKeyboardMarkup():
             'selective': selective
             }
 
+class InlineKeyboardMarkup():
+    '''
+    class used to as custom reply_markup to send custom keyboards
+    '''
+
+    def __init__(self, keyboard):
+        self.data = {
+            'inline_keyboard': [[k.data for k in row] for row in keyboard]
+            }
+
+
 class KeyboardButton():
     '''
     class used to create button objects used with ReplyKeyboardMarkup
@@ -229,6 +282,19 @@ class KeyboardButton():
             'request_location': request_location
             }
 
+class InlineKeyboardButton():
+    '''
+    class used to create button objects used with ReplyKeyboardMarkup
+    '''
+
+    def __init__(self, text,url="",callback_data = ""):
+        self.data = {
+            'text': text,
+            'url': url,
+            'callback_data' : callback_data
+            }
+
+
 class Update():
     '''
     class with basic methods for updates
@@ -236,8 +302,25 @@ class Update():
 
     def __init__(self, b, update):
         self.update_id = update['update_id']
-        self.message = update['message']
         self.bot = b
+        self.is_callback = False
+        self.callback_data = ""
+        try:
+            if update['callback_query']:
+                    print("IS A CALLBACK")
+                    self.is_callback = True
+                    self.message = update['callback_query']['message']
+                    self.callback_data = update['callback_query']['data']
+
+
+        except KeyError as e:
+            print("Not a Callback")
+            self.message = update['message']
+            
+            
 
     def reply(self, text, parse_mode='MarkdownV2', reply_markup=None):
         self.bot.send_message(self.message['chat']['id'], text, parse_mode=parse_mode, reply_markup=reply_markup)
+
+    def edit(self,text, parse_mode='MarkdownV2', reply_markup=None):
+        self.bot.update_message(self.message['chat']['id'] , self.message['message_id'], text, parse_mode= parse_mode , reply_markup= reply_markup)
